@@ -1,6 +1,7 @@
 .DS_Store
 *.tgz
 maildir/
-final_project/work.py
 final_project/emails_by_address/
 __pycache__/
+*.ipynb
+.ipynb_checkpoints
