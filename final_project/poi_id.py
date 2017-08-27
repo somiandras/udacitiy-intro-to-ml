@@ -10,11 +10,19 @@ sys.path.append("../tools/")
 
 from feature_format import featureFormat, targetFeatureSplit
 from tester import dump_classifier_and_data
+from feature_creator import add_new_features
 
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
-features_list = ['poi', 'salary', 'total_payments', 'expenses', 'bonus'] # You will need to use more features
+features_list = [
+        'poi',
+        'total_payments',
+        'total_stock_value',
+        'payments_score',
+        'outbox_poi_ratio',
+        'shared_poi_ratio',
+        'poi_inbox_outbox_ratio']
 
 ### Load the dictionary containing the dataset
 with open("final_project_dataset.pkl", "r") as data_file:
@@ -27,11 +35,13 @@ data_dict.pop('TOTAL', None)
 
 
 ### Task 3: Create new feature(s)
+
+data_dict = add_new_features(data_dict)
 ### Store to my_dataset for easy export below.
 my_dataset = data_dict
 
 ### Extract features and labels from dataset for local testing
-data = featureFormat(my_dataset, features_list, sort_keys = True)
+data = featureFormat(my_dataset, features_list, sort_keys=True)
 labels, features = targetFeatureSplit(data)
 
 ### Task 4: Try a varity of classifiers
@@ -43,6 +53,7 @@ labels, features = targetFeatureSplit(data)
 # Provided to give you a starting point. Try a variety of classifiers.
 from sklearn.naive_bayes import GaussianNB
 clf = GaussianNB()
+clf.fit(features, labels)
 
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script. Check the tester.py script in the final project
