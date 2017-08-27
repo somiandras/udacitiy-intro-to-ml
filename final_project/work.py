@@ -2,25 +2,33 @@
 # -*- coding: utf-8 -*-
 
 import pickle
-import string
-import re
-import sys
-sys.path.append("../tools/")
-
-from feature_format import featureFormat, targetFeatureSplit
-from tester import dump_classifier_and_data
-from extract_emails import get_sent_emails, extract_email_text, stem_text
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
 
 
-with open("final_project_dataset.pkl", "r") as data_file:
-    data_dict = pickle.load(data_file)
+# Open data files from pickles
+with open('experiment_word_data.pkl', 'r') as word_file:
+    word_data = pickle.load(word_file)
 
-email_addresses = [(data_dict[name]['email_address'], name) for
-    name in data_dict if data_dict[name]['email_address'] != 'NaN']
+with open('poi_labels.pkl', 'r') as label_file:
+    label_data = pickle.load(label_file)
 
-for email_address, name in email_addresses[:15]:
-    raw_emails = get_sent_emails(email_address)
-    processed_emails = ' '.join({extract_email_text(email, name) for
-        email in raw_emails})
+# Split train and test data
+features_train, features_test, labels_train, labels_test = train_test_split(
+    word_data, label_data, test_size=0.3)
 
-    print processed_emails
+# Vectorize features
+vectorizer = TfidfVectorizer(sublinear_tf=True, max_df=0.1, max_features=200,
+    stop_words='english')
+features_train = vectorizer.fit_transform(features_train)
+features_test = vectorizer.transform(features_test)
+
+
+# Fit and score classifier
+clf = MultinomialNB()
+clf.fit(features_train, labels_train)
+
+print 'Score on train set: ' + str(clf.score(features_train, labels_train))
+print 'Score on test set: ' + str(clf.score(features_test, labels_test))
+
