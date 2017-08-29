@@ -7,3 +7,4 @@ __pycache__/
 .ipynb_checkpoints
 experiment_word_data.pkl
 poi_labels.pkl
+*.pyc
