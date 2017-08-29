@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import pandas as pd
 import numpy as np
 
@@ -13,6 +15,10 @@ payments_features = ['salary',
 
 
 def scoring(row):
+    '''
+    Count how many of the payment features exists for the person
+    '''
+
     score = 0
     for feature in payments_features:
         score += ~np.isnan(row[feature])
@@ -20,6 +26,12 @@ def scoring(row):
 
 
 def add_new_features(data):
+    '''
+    Add new features to each person in the data_dict.
+    The data_dict is converted to pandas DataFrame for easier
+    calculations, and then converted back to dictionary again.
+    '''
+
     df = pd.DataFrame(data)
     df = df.transpose()
     df.replace(to_replace='NaN', value=np.nan, inplace=True)
@@ -30,7 +42,10 @@ def add_new_features(data):
         df['adjusted_payments']
     df['salary_ratio'] = df['salary'] / df['adjusted_payments']
     df['payments_score'] = df.apply(scoring, axis=1)
+    df['total_benefits'] = df['total_stock_value'] + df['total_payments']
+    df['logPayments'] = np.log10(df['total_payments'] + 1)
 
+    # Replace NaN with 0 for the payment-related features
     for feature in payments_features:
         df[feature].replace(np.nan, value=0, inplace=True)
 
