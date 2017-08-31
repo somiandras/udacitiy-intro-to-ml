@@ -100,7 +100,7 @@ __SelectKBest:__
 * I scaled the features with `MinMaxScaler` to avoid issues later, as some of the financial variables are several order of magnitude higher than most of the email features. Some algorithm do not necessarily need scaling, but it does not do harm either, while others (eg. SVM) explicitly require it.
 * In this scoring most of the email features got lower scores, and from the engineered features `total_benefits`, `payment_score` and `outbox_poi_ratio` got to the top group.
 * The first two features (`total_stock_value` and `total_benefits`) are strongly related, therefore I am not sure it would be wise to use both in a model.
-* Skipping `total_benefits` I kept the top 8 features (including `shared_receipt_with_poi`).
+* Skipping `total_benefits` I kept the top 8 features (including `shared_receipt_with_poi`), as these show p-values that I consider sufficiently low (p < 0.01).
 
 _Results of SelectKBest scoring using `f-classif` (feature, f-score, p-value)_
 
@@ -149,7 +149,7 @@ I tried multiple algorithms, and experimented more with decision tree, Naive-Bay
 [('dt', 1.0, 1.0), ('nb', 0.3125, 0.35714285714285715), ('svc', 0.0, 0.0)]
 ```
 
-For the final algorithm I used the 8 features selected in the previous step, but added a pipeline with a `PCA` step to potentially further enhance the information extraction.
+For the final algorithm I used the 8 features selected in the previous step, but added a pipeline with a `PCA` step to potentially further enhance the information extraction. Therefore I did not want to further narrow down the features list to let PCA alongside GridSearch extract the optimal amount of information.
 
 ## 4. What does it mean to tune the parameters of an algorithm, and what can happen if you don’t do this well?  How did you tune the parameters of your particular algorithm? What parameters did you tune? 
 
