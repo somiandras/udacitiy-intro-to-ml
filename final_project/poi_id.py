@@ -16,7 +16,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, StratifiedShuffleSplit
 from sklearn.metrics import precision_score, recall_score, accuracy_score,\
     confusion_matrix
 
@@ -175,10 +175,10 @@ clf = grid_search_tree.best_estimator_
 # features_train, features_test, labels_train, labels_test = \
 #     train_test_split(features, labels, test_size=0.3, random_state=42)
 
-print '\nKFOLD CV:'
-kf = KFold(n_splits=4, shuffle=True)
+print '\nKSTRATIFIED SHUFFLE SPLIT CV:'
+kf = StratifiedShuffleSplit(n_splits=4)
 results = []
-for train_index, test_index in kf.split(final_features):
+for train_index, test_index in kf.split(final_features, final_labels):
     features_train = [final_features[idx] for idx in train_index]
     features_test = [final_features[idx] for idx in test_index]
     labels_train = [final_labels[idx] for idx in train_index]
