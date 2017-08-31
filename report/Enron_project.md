@@ -13,7 +13,7 @@ In this specific case we might also face some of the limitations, as the dataset
 
 ### The data
 
-* The dataset contains financial and email data about 145 persons related to the Enron scandal. There are varying number of features for each individual.
+* The dataset contains financial and email data about 145 persons related to the Enron scandal (146 data points in total including an additional entry for financial totals). There are varying number of features for each individual.
 * We have emailing data for 86 persons, all of them equally has all the five features present.
 
 __Number of observation for emailing features:__
@@ -153,7 +153,9 @@ For the final algorithm I used the 8 features selected in the previous step, but
 
 ## 4. What does it mean to tune the parameters of an algorithm, and what can happen if you don’t do this well?  How did you tune the parameters of your particular algorithm? What parameters did you tune? 
 
-After manually trying many combinations of parameters, I decided to search for the best parameters with the help of `GridSearchCV` with ‘recall’ as scoring. 
+Parameter tuning is the process of finding the best parameters for the chosen algorithm (if it has parameters to tune). By changing parameters we can find the right trade-off between bias and variance, to obtain a model that sufficiently fits to training data but still generalize well for new data. If the parameters are not chosen carefully the model can be overfitted (low bias, high variance).
+
+In this case, after manually trying many combinations of parameters, I decided to search for the best parameters with the help of `GridSearchCV` with ‘recall’ as scoring. 
 
 I tuned the number of selected components from PCA (`n_components`) and `min_samples_split` and `min_samples_leaf` in the decision tree to avoid overfitting. The former controls the minimum number of samples needed for considering a split for a node, the latter controls the minimum number of samples needed in a leaf node, both intended to keep the model from creating too many fragmented nodes.
 
@@ -187,9 +189,9 @@ Average accuracy: 0.878151260504
 
 In the example above the scores can be interpreted as follows:
 
-* __accuracy:__ in 88% of the cases on average the algorithm predicts the right POI label for a person
-* __precision:__ when the algorithm predicts that a person is a POI, in 46% of the cases it turns out to be true on average
-* __recall:__ when the person to be predicted is actually a POI, the algorithm will guess it right 38% of the cases on average
+* __accuracy:__ in 88% of the cases on average the algorithm predicts the right POI label for a person.
+* __precision:__ when the algorithm labels a person POI, on average in 46% of the cases it turns out to be true.
+* __recall:__ when a person is a POI in reality, the algorithm gives the POI label 38% of the cases on average.
 
 In this specific case accuracy might be a bit misleading, as most of the datapoints are labeled ‘not-POI’, and as the algorithm predicts mostly negative results, it naturally ‘hits’ the true negatives in a relatively large number of cases. In the meantime the number of true positives is relatively low, hence the lower precision and recall values.
 
