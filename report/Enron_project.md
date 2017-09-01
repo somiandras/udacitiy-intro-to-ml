@@ -13,7 +13,7 @@ In this specific case we might also face some of the limitations, as the dataset
 
 ### The data
 
-* The dataset contains financial and email data about 145 persons related to the Enron scandal (146 data points in total including an additional entry for financial totals). There are varying number of features for each individual.
+* The dataset contains financial and email data about 145 persons related to the Enron scandal (146 data points in total, including an additional entry for financial totals). There are varying number of features for each individual.
 * We have emailing data for 86 persons, all of them equally has all the five features present.
 
 __Number of observation for emailing features:__
@@ -100,7 +100,7 @@ __SelectKBest:__
 * I scaled the features with `MinMaxScaler` to avoid issues later, as some of the financial variables are several order of magnitude higher than most of the email features. Some algorithm do not necessarily need scaling, but it does not do harm either, while others (eg. SVM) explicitly require it.
 * In this scoring most of the email features got lower scores, and from the engineered features `total_benefits`, `payment_score` and `outbox_poi_ratio` got to the top group.
 * The first two features (`total_stock_value` and `total_benefits`) are strongly related, therefore I am not sure it would be wise to use both in a model.
-* Skipping `total_benefits` I kept the top 8 features (including `shared_receipt_with_poi`), as these show p-values that I consider sufficiently low (p < 0.01).
+* Skipping `total_benefits` I kept the other top 8 features (including `shared_receipt_with_poi`), as these show p-values that I consider sufficiently low (p < 0.01), meaning that in a univariate setup these proved to be statistically significant. In the later parts I excluded the remainder of the initial features.
 
 _Results of SelectKBest scoring using `f-classif` (feature, f-score, p-value)_
 
@@ -141,6 +141,50 @@ p> 0.05
 ('other', 0.0047310688341011342, 0.94526282733110101)
 ```
 
+* I also iterated the number of features for `SelectKBest` from 2 through 8 with the final model setup (including a PCA step in the pipeline), and scoring every best estimator of `GridSearchCV` by recall. This showed that including all the top 8 features (excluding `total_benefits`) gives the best result in this setup.
+
+Here’s the output, in descending order by recall scores, trained on whole dataset:
+
+```
+BEST PARAMETERS FOR 8 BEST FEATURES:
+Score: 0.536690647482
+Parameters: {'tree__min_samples_split': 2, 'selector__n_components': 4, 'tree__min_samples_leaf': 3}
+---------------
+
+BEST PARAMETERS FOR 7 BEST FEATURES:
+Score: 0.423980815348
+Parameters: {'tree__min_samples_split': 6, 'selector__n_components': 7, 'tree__min_samples_leaf': 2}
+---------------
+
+BEST PARAMETERS FOR 4 BEST FEATURES:
+Score: 0.377458033573
+Parameters: {'tree__min_samples_split': 13, 'selector__n_components': 4, 'tree__min_samples_leaf': 4}
+---------------
+
+BEST PARAMETERS FOR 6 BEST FEATURES:
+Score: 0.367625899281
+Parameters: {'tree__min_samples_split': 2, 'selector__n_components': 3, 'tree__min_samples_leaf': 8}
+---------------
+
+BEST PARAMETERS FOR 2 BEST FEATURES:
+Score: 0.321103117506
+Parameters: {'tree__min_samples_split': 3, 'selector__n_components': 2, 'tree__min_samples_leaf': 2}
+---------------
+
+BEST PARAMETERS FOR 5 BEST FEATURES:
+Score: 0.301438848921
+Parameters: {'tree__min_samples_split': 13, 'selector__n_components': 5, 'tree__min_samples_leaf': 4}
+---------------
+
+BEST PARAMETERS FOR 3 BEST FEATURES:
+Score: 0.198561151079
+Parameters: {'tree__min_samples_split': 2, 'selector__n_components': 2, 'tree__min_samples_leaf': 2}
+---------------
+```
+
+_(I also ran a version of the code where I tested every values between 1 and the number of available features as k for `SelectKBest()`, but I couldn’t find better recall scores as with the 8 selected features. The code runs very long, therefore I did not include it into the final submission)_.
+
+
 ## 3. What algorithm did you end up using? What other one(s) did you try? How did model performance differ between algorithms?  
 
 I tried multiple algorithms, and experimented more with decision tree, Naive-Bayes and SVM. Out of this three the decision tree produced the best results when fitted on the whole dataset. But this is due to overfitting, which I intended to handle by tuning the parameters. SVC did not work in this setup.
@@ -149,7 +193,7 @@ I tried multiple algorithms, and experimented more with decision tree, Naive-Bay
 [('dt', 1.0, 1.0), ('nb', 0.3125, 0.35714285714285715), ('svc', 0.0, 0.0)]
 ```
 
-For the final algorithm I used the 8 features selected in the previous step, but added a pipeline with a `PCA` step to potentially further enhance the information extraction. Therefore I did not want to further narrow down the features list to let PCA alongside GridSearch extract the optimal amount of information.
+For the final algorithm I used the 8 features selected in the previous step, but added a pipeline with a `PCA` step to potentially enhance the information extraction. Therefore I did not want to further narrow down the features list to let PCA alongside GridSearch extract the optimal amount of information.
 
 ## 4. What does it mean to tune the parameters of an algorithm, and what can happen if you don’t do this well?  How did you tune the parameters of your particular algorithm? What parameters did you tune? 
 
@@ -157,7 +201,9 @@ Parameter tuning is the process of finding the best parameters for the chosen al
 
 In this case, after manually trying many combinations of parameters, I decided to search for the best parameters with the help of `GridSearchCV` with ‘recall’ as scoring. 
 
-I tuned the number of selected components from PCA (`n_components`) and `min_samples_split` and `min_samples_leaf` in the decision tree to avoid overfitting. The former controls the minimum number of samples needed for considering a split for a node, the latter controls the minimum number of samples needed in a leaf node, both intended to keep the model from creating too many fragmented nodes.
+I tuned the number of selected components from PCA (`n_components`) and `min_samples_split` and `min_samples_leaf` in the decision tree to avoid overfitting. The former controls the minimum number of samples needed for considering a split for a node, the latter controls the minimum number of samples needed in a leaf node, both intended to keep the model from creating too many fragmented nodes and unnecessarily deep structure.
+
+An example output:
 
 ```
 BEST PARAMETERS FOR DT GRIDSEARCH:
@@ -172,28 +218,30 @@ Classic mistake would be to stop here with the model evaluation, assessing the f
 
 The most important validaton technique is cross-validation, by using only a part of the dataset to train the model (in this case the pipeline) and evaluating its performance on the remaining data. This can be enhanced by using folding techniques (especially with smaller samples, like in this case).
 
-I used K-fold cross-validation with 4 folds, due to the relatively low number of observations (on bigger samples higher number of folds might be useful). In this project of course the given tester module is the best option, as it performs an even more sophisticated cross-validation of the classifier.
+I used `StratifiedShuffleSplit`, in order to handle the class imbalance of the data. The labels distribution is far from even in the dataset, therefore a simple train-test split or a K-Fold cross-validation could produce misleading results if the share of POIs in train and test sets are substantially different. `StratifiedShuffleSplit` makes sure that the different train-test splits contain about the same percentage of positive labels.
+
+Instead of the default setting of `StratifiedShuffleSplit` for the train-test split, I raised the `test_size` parameter to 0.2 as the default value would result in test samples of 14 observations, which might be too low.
 
 ## 6. Give at least 2 evaluation metrics and your average performance for each of them. Explain an interpretation of your metrics that says something human-understandable about your algorithm’s performance. 
 
-I used four metrics to evaluate the algorithm: average precision, recall and accuracy scores for the K-fold testing sets, and also print out confusion matrix for every fold.
+I used four metrics to evaluate the algorithm: average precision, recall and accuracy scores for the testing sets, and also print out confusion matrix for every fold.
 
-An example output from my K-fold CV:
+An example output from my cross-validation:
 
 ```
-RESULTS FOR KFOLD CV:
-Average precision: 0.458333333333
-Average recall: 0.375
-Average accuracy: 0.878151260504
+RESULTS FOR STRATIFIED SHUFFLE SPLIT CV:
+Average precision: 0.5
+Average recall: 0.541666666667
+Average accuracy: 0.919642857143
 ```
 
-In the example above the scores can be interpreted as follows:
+In this specific example above the scores can be interpreted as follows:
 
-* __accuracy:__ in 88% of the cases on average the algorithm predicts the right POI label for a person.
-* __precision:__ when the algorithm labels a person POI, on average in 46% of the cases it turns out to be true.
-* __recall:__ when a person is a POI in reality, the algorithm gives the POI label 38% of the cases on average.
+* __accuracy:__ in 92% of the cases on average the algorithm predicts the right POI label for a person.
+* __precision:__ when the algorithm labels a person POI, on average in 50% of the cases it turns out to be true.
+* __recall:__ when a person is a POI in reality, the algorithm gives the POI label 54% of the cases on average.
 
-In this specific case accuracy might be a bit misleading, as most of the datapoints are labeled ‘not-POI’, and as the algorithm predicts mostly negative results, it naturally ‘hits’ the true negatives in a relatively large number of cases. In the meantime the number of true positives is relatively low, hence the lower precision and recall values.
+In this specific case accuracy might be a bit misleading, as most of the datapoints are labeled ‘not-POI’ (class imbalance), and as the algorithm predicts mostly negative results, it naturally ‘hits’ the true negatives in a relatively large number of cases. In the meantime the number of true positives is relatively low, hence the lower precision and recall values.
 
 # References
 
