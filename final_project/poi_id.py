@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import pprint as pp
-import sys
 import pickle
+import sys
 sys.path.append("../tools/")
 
 from feature_format import featureFormat, targetFeatureSplit
@@ -109,7 +109,8 @@ pp.pprint(sorted(
     fitted_selector.pvalues_
     ), key=lambda x: x[1], reverse=True))
 
-# Try different models in a similar pipeline
+
+# Try different models in a similar pipeline with k=8 features
 models = {
     'dt':  DecisionTreeClassifier(),
     'nb': GaussianNB(),
@@ -125,11 +126,12 @@ for model in models:
     ])
 
     pipe.fit(features, labels)
+
     results.append((model,
         precision_score(pipe.predict(features), labels),
         recall_score(pipe.predict(features), labels)))
 
-print '\nDEFAULT RESULTS FROM BASIC MODELS:'
+print '\nAVERAGE RESULTS FROM BASIC MODELS WITH K=8:'
 print results
 
 ### Extract final features and labels from dataset
@@ -143,40 +145,60 @@ final_labels, final_features = targetFeatureSplit(final_data)
 ### stratified shuffle split cross validation. For more info: 
 ### http://scikit-learn.org/stable/modules/generated/sklearn.cross_validation.StratifiedShuffleSplit.html
 
-# Create pipeline with PCA
-final_pipeline = Pipeline([
-    ('scaler', MinMaxScaler()),
-    ('selector', PCA()),
-    ('tree', DecisionTreeClassifier())
-])
+print '\nBuilding models for k=1,2,...8 values. This takes a while...'
 
-# Parameter grid for DT param search
-tree_parameters = {
-    'selector__n_components': list(range(3, len(final_features_list))),
-    'tree__min_samples_split': list(range(2, 30)),
-    'tree__min_samples_leaf': list(range(2, 10))
-}
+estimators = []
+# Try 2-8 best features with PCA and DT classifier
+for k_value in range(2, 9):
+    # Create pipeline with PCA
+    final_pipeline = Pipeline([
+        ('scaler', MinMaxScaler()),
+        ('k_best', SelectKBest(k=k_value)),
+        ('selector', PCA()),
+        ('tree', DecisionTreeClassifier())
+    ])
 
-# Search for best features set and min_samples_split value
-# with Decision Tree
-grid_search_tree = GridSearchCV(final_pipeline,
-    param_grid=tree_parameters,
-    scoring='recall')
-grid_search_tree.fit(final_features, final_labels)
+    # Parameter grid for DT param search
+    tree_parameters = {
+        'selector__n_components': list(range(2, k_value + 1)),
+        'tree__min_samples_split': list(range(2, 30)),
+        'tree__min_samples_leaf': list(range(2, 10))
+    }
 
-print '\nBEST PARAMETERS FOR DT GRIDSEARCH:'
-pp.pprint(grid_search_tree.best_params_)
+    # Search for best features set and min_samples_split value
+    # with Decision Tree
+    grid_search_tree = GridSearchCV(final_pipeline,
+        param_grid=tree_parameters,
+        scoring='recall')
+
+    grid_search_tree.fit(final_features, final_labels)
+
+    # Store the best estimator for the given k value
+    estimators.append((
+        k_value,
+        grid_search_tree.best_score_,
+        grid_search_tree.best_params_, 
+        grid_search_tree.best_estimator_))
+
+# Get the estimators sorted by recall score
+estimators.sort(key=lambda x: x[1], reverse=True)
+for k, score, params, estimator in estimators:
+
+    print '\nBEST PARAMETERS FOR {} BEST FEATURES:'.format(k)
+    print 'Score: {}'.format(score)
+    print 'Parameters: {}'.format(params)
+    print '---------------'
 
 # Keep the best modell as classifier
-clf = grid_search_tree.best_estimator_
+clf = estimators[0][3]
 
 # Example starting point. Try investigating other evaluation techniques!
 # from sklearn.cross_validation import train_test_split
 # features_train, features_test, labels_train, labels_test = \
 #     train_test_split(features, labels, test_size=0.3, random_state=42)
 
-print '\nKSTRATIFIED SHUFFLE SPLIT CV:'
-kf = StratifiedShuffleSplit(n_splits=4)
+print '\nSTRATIFIED SHUFFLE SPLIT CV:'
+kf = StratifiedShuffleSplit(n_splits=4, test_size=0.2)
 results = []
 for train_index, test_index in kf.split(final_features, final_labels):
     features_train = [final_features[idx] for idx in train_index]
@@ -203,7 +225,7 @@ for train_index, test_index in kf.split(final_features, final_labels):
 
 # Print average metrics
 prec, rec, acc = tuple(sum(score) / len(score) for score in zip(*results))
-print '''\nRESULTS FOR KFOLD CV:
+print '''\nRESULTS FOR STRATIFIED SHUFFLE SPLIT CV:
 Average precision: {0}
 Average recall: {1}
 Average accuracy: {2}'''.format(prec, rec, acc)
